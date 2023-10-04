@@ -1,5 +1,6 @@
 package dev.zykov.micronaut.security.yandex;
 
+import dev.zykov.micronaut.security.CommonUserDetailsMapper;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.security.authentication.AuthenticationResponse;
 import io.micronaut.security.oauth2.endpoint.authorization.state.State;
@@ -7,8 +8,6 @@ import io.micronaut.security.oauth2.endpoint.token.response.OauthAuthenticationM
 import io.micronaut.security.oauth2.endpoint.token.response.TokenResponse;
 import jakarta.inject.Named;
 import jakarta.inject.Singleton;
-import java.util.Collections;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
@@ -19,14 +18,12 @@ import reactor.core.publisher.Flux;
 @RequiredArgsConstructor
 public class YandexUserDetailsMapper implements OauthAuthenticationMapper {
     private final YandexApiClient yandexApiClient;
+    private final CommonUserDetailsMapper commonUserDetailsMapper;
 
     @Override
     public Publisher<AuthenticationResponse> createAuthenticationResponse(
         TokenResponse tokenResponse, @Nullable State state) {
         return Flux.from(yandexApiClient.getUser("OAuth " + tokenResponse.getAccessToken()))
-            .map(user -> {
-                List<String> roles = Collections.singletonList("ROLE_YANDEX");
-                return AuthenticationResponse.success(user.getNickName(), roles);
-            });
+            .map(user -> commonUserDetailsMapper.getAuthentication(user.getId(), user.getNickName()));
     }
 }

@@ -1,5 +1,6 @@
 package dev.zykov.micronaut.security.vk;
 
+import dev.zykov.micronaut.security.CommonUserDetailsMapper;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.security.authentication.AuthenticationResponse;
 import io.micronaut.security.oauth2.endpoint.authorization.state.State;
@@ -11,23 +12,20 @@ import lombok.RequiredArgsConstructor;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 
-import java.util.Collections;
-import java.util.List;
-
 @Named("vk") // Bean должен иметь данную аннотацию с тем же значением, которое было написано в файле конфигураций
 @Singleton
 @RequiredArgsConstructor
 public class VkUserDetailsMapper implements OauthAuthenticationMapper {
     private final VkApiClient vkApiClient;
+    private final CommonUserDetailsMapper commonUserDetailsMapper;
 
     @Override
     public Publisher<AuthenticationResponse> createAuthenticationResponse(
         TokenResponse tokenResponse, @Nullable State state) {
         return Flux.from(vkApiClient.getUser(tokenResponse.getAccessToken(), "5.89", "domain"))
             .map(response -> {
-                List<String> roles = Collections.singletonList("ROLE_VK");
                 var user = response.getResponse().get(0);
-                return AuthenticationResponse.success(user.getFirstName() + user.getLastName(), roles);
+                return commonUserDetailsMapper.getAuthentication(user.getId(), user.getFirstName() + user.getLastName());
             });
     }
 }
